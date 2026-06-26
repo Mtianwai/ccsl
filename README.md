@@ -16,9 +16,9 @@
 
 ## 🤔 Why?
 
-cc-switch switches Claude models **globally**. Want Opus in one terminal and Sonnet in another? **Can't do it.**
+cc-switch switches providers **globally**. Want Anthropic in one terminal and DeepSeek in another? **Can't do it.**
 
-ccsl fixes this — each terminal picks its own model, independently.
+ccsl fixes this — each terminal picks its own provider, independently.
 
 ## ⚡ Quick Start
 
@@ -118,11 +118,11 @@ Then just type `ccsl` to switch — one word, done.
 ## 🌰 Example
 
 ```bash
-# Terminal 1 — complex tasks, need Opus
+# Terminal 1 — official Anthropic API
 $ ccsl -s
 # → Select: Claude Official
 
-# Terminal 2 — quick questions, use cheaper model
+# Terminal 2 — cheaper alternative via DeepSeek
 $ ccsl -s
 # → Select: DeepSeek
 

@@ -16,9 +16,9 @@
 
 ## 🤔 解决什么问题
 
-cc-switch 切换模型是**全局生效**的。想在一个终端用 Opus、另一个终端用 Sonnet？**做不到。**
+cc-switch 切换 provider 是**全局生效**的。想在一个终端用 Anthropic、另一个终端用 DeepSeek？**做不到。**
 
-ccsl 解决了这个问题——每个终端独立选择自己的模型，互不干扰。
+ccsl 解决了这个问题——每个终端独立选择自己的 provider，互不干扰。
 
 ## ⚡ 快速开始
 
@@ -118,11 +118,11 @@ alias ccsl='eval $(bun run /path/to/ccsl/src/index.ts --quiet)'
 ## 🌰 示例
 
 ```bash
-# 终端 1 — 复杂任务，用 Opus
+# 终端 1 — 用 Anthropic 官方 API
 $ ccsl -s
 # → 选择：Claude Official
 
-# 终端 2 — 快速问答，用便宜模型
+# 终端 2 — 用 DeepSeek 等第三方
 $ ccsl -s
 # → 选择：DeepSeek
 
