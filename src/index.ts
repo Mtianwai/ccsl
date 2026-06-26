@@ -3,7 +3,7 @@
 import { select, isCancel, cancel, intro, outro } from "@clack/prompts";
 import { getClaudeProviders, getProviderById, getCurrentProviderId, isDbExists, ClaudeProvider } from "./db";
 
-const VERSION = "2.0.0";
+const VERSION = "2.1.0";
 
 // All interactive UI goes to stderr; stdout is reserved for --print output.
 const ui = process.stderr;
