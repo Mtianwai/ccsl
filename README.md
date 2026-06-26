@@ -1,4 +1,4 @@
-# CC-Switch Local (ccsll)
+# CC-Switch Local (ccsl)
 
 Terminal-level model switcher for cc-switch - use different Claude models in different terminals simultaneously.
 

@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 import { homedir } from "os";
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 
 export interface ClaudeProvider {
   id: string;
@@ -46,14 +46,20 @@ export function getClaudeProviders(): ClaudeProvider[] {
       )
       .all() as ProviderRow[];
 
-    return rows.map((row) => {
-      const config = JSON.parse(row.settings_config);
-      return {
-        id: row.id,
-        name: row.name,
-        env: config.env || {},
-      };
-    });
+    return rows
+      .map((row) => {
+        try {
+          const config = JSON.parse(row.settings_config);
+          return {
+            id: row.id,
+            name: row.name,
+            env: config.env || {},
+          };
+        } catch {
+          return null;
+        }
+      })
+      .filter((p): p is ClaudeProvider => p !== null);
   } finally {
     db.close();
   }
@@ -79,12 +85,16 @@ export function getProviderById(id: string): ClaudeProvider | undefined {
 
     if (!row) return undefined;
 
-    const config = JSON.parse(row.settings_config);
-    return {
-      id: row.id,
-      name: row.name,
-      env: config.env || {},
-    };
+    try {
+      const config = JSON.parse(row.settings_config);
+      return {
+        id: row.id,
+        name: row.name,
+        env: config.env || {},
+      };
+    } catch {
+      return undefined;
+    }
   } finally {
     db.close();
   }
@@ -94,6 +104,11 @@ export function getCurrentProviderId(): string | undefined {
   const settingsPath = join(homedir(), ".cc-switch", "settings.json");
   if (!existsSync(settingsPath)) return undefined;
 
-  const settings = require(settingsPath);
-  return settings.currentProviderClaude;
+  try {
+    const content = readFileSync(settingsPath, "utf-8");
+    const settings = JSON.parse(content);
+    return settings.currentProviderClaude;
+  } catch {
+    return undefined;
+  }
 }

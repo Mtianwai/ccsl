@@ -1,7 +1,9 @@
 #!/usr/bin/env bun
 
-import { select, confirm, isCancel, cancel, intro, outro } from "@clack/prompts";
+import { select, isCancel, cancel, intro, outro } from "@clack/prompts";
 import { getClaudeProviders, getProviderById, getCurrentProviderId, isDbExists, ClaudeProvider } from "./db";
+
+const VERSION = "1.0.0";
 
 function formatEnvExport(provider: ClaudeProvider): string {
   const lines: string[] = [];
@@ -22,19 +24,49 @@ function getModelName(provider: ClaudeProvider): string {
   );
 }
 
+function getDisplayName(provider: ClaudeProvider): string {
+  return provider.name || "(unnamed)";
+}
+
+function showHelp() {
+  console.log(`
+ccsl - Terminal-level model switcher for cc-switch
+
+Usage:
+  ccsl                   Interactive provider selection (outputs export commands)
+  ccsl --start, -s       Select provider and launch Claude directly
+  ccsl --quiet, -q       Use current provider without interactive selection
+  ccsl --help, -h        Show this help message
+  ccsl --version, -v     Show version
+
+Examples:
+  eval $(ccsl)           Apply selected provider to current shell
+  ccsl -s                Select and start Claude
+  ccsl -q                Export current provider's env vars (for aliases)
+
+GitHub: https://github.com/nicobailon/cc-switch
+`);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const startClaude = args.includes("--start") || args.includes("-s");
   const quiet = args.includes("--quiet") || args.includes("-q");
 
-  if (!quiet) {
-    intro("🎨 CC-Switch Local");
+  if (args.includes("--help") || args.includes("-h")) {
+    showHelp();
+    process.exit(0);
+  }
+
+  if (args.includes("--version") || args.includes("-v")) {
+    console.log(VERSION);
+    process.exit(0);
   }
 
   // Check if db exists
   if (!isDbExists()) {
-    console.error("❌ cc-switch database not found.");
-    console.error("   Please make sure cc-switch is installed.");
+    if (!quiet) console.error("❌ cc-switch database not found.");
+    if (!quiet) console.error("   Please make sure cc-switch is installed.");
     process.exit(1);
   }
 
@@ -42,34 +74,47 @@ async function main() {
   const providers = getClaudeProviders();
 
   if (providers.length === 0) {
-    console.error("❌ No Claude providers found in cc-switch database.");
+    if (!quiet) console.error("❌ No Claude providers found in cc-switch database.");
     process.exit(1);
   }
 
   // Get current provider for highlighting
   const currentId = getCurrentProviderId();
 
-  // Build options for select
-  const options = providers.map((p) => ({
-    value: p.id,
-    label: `${p.name} (${getModelName(p)})`,
-    hint: p.id === currentId ? "current" : undefined,
-  }));
+  let selectedId: string;
 
-  // Ask user to select a provider
-  const selected = await select({
-    message: "Select a Claude provider for this terminal:",
-    options,
-    initialValue: currentId || options[0]?.value,
-  });
+  if (quiet) {
+    // In quiet mode, use current provider directly
+    selectedId = currentId || providers[0]?.id;
+    if (!selectedId) {
+      process.exit(1);
+    }
+  } else {
+    // Interactive mode
+    intro("🎨 CC-Switch Local");
 
-  if (isCancel(selected)) {
-    cancel("Operation cancelled.");
-    process.exit(0);
+    const options = providers.map((p) => ({
+      value: p.id,
+      label: `${getDisplayName(p)} (${getModelName(p)})`,
+      hint: p.id === currentId ? "current" : undefined,
+    }));
+
+    const selected = await select({
+      message: "Select a Claude provider for this terminal:",
+      options,
+      initialValue: currentId || options[0]?.value,
+    });
+
+    if (isCancel(selected)) {
+      cancel("Operation cancelled.");
+      process.exit(0);
+    }
+
+    selectedId = selected as string;
   }
 
   // Get the selected provider
-  const provider = getProviderById(selected as string);
+  const provider = getProviderById(selectedId);
   if (!provider) {
     console.error("❌ Provider not found.");
     process.exit(1);
@@ -87,7 +132,7 @@ async function main() {
     }
 
     if (!quiet) {
-      outro(`✅ Using ${provider.name} (${getModelName(provider)})`);
+      outro(`✅ Using ${getDisplayName(provider)} (${getModelName(provider)})`);
     }
 
     // Start claude
@@ -100,7 +145,7 @@ async function main() {
     console.log(envExport);
 
     if (!quiet) {
-      outro(`✅ Run 'eval \$(ccs)' to apply, or 'ccs --start' to launch Claude directly`);
+      outro(`✅ Run 'eval \$(ccsl)' to apply, or 'ccsl --start' to launch Claude directly`);
     }
   }
 }
