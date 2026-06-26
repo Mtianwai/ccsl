@@ -25,8 +25,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Create .npmrc
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+      - name: Debug auth
+        run: |
+          echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+          echo "Token length: $(echo -n '${{ secrets.NPM_TOKEN }}' | wc -c)"
+          npm whoami
 
       - name: Publish to npm
         run: npm publish --access public
