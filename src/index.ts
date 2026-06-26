@@ -3,37 +3,17 @@
 import { select, isCancel, cancel, intro, outro } from "@clack/prompts";
 import { getClaudeProviders, getProviderById, getCurrentProviderId, isDbExists, ClaudeProvider } from "./db";
 
-const VERSION = "1.1.1";
+const VERSION = "2.0.0";
 
-// All interactive UI goes to stderr so stdout stays clean for `eval $(ccsl)`.
+// All interactive UI goes to stderr; stdout is reserved for --print output.
 const ui = process.stderr;
 
-// Build the shell script that switches to `provider`. Crucially, it first
-// `unset`s every env var any provider could set (`allKeys`), so switching from
-// a provider that uses ANTHROPIC_AUTH_TOKEN to one that uses AWS_REGION (or to
-// "Claude Official" which sets nothing) doesn't leave stale credentials behind.
-function formatEnvExport(provider: ClaudeProvider, allKeys: string[]): string {
-  const lines: string[] = [];
-
-  // Clean slate: drop every var ccsl might have set previously.
-  for (const key of allKeys) {
-    lines.push(`unset ${key}`);
-  }
-
-  // Apply the selected provider's vars.
-  for (const [key, value] of Object.entries(provider.env)) {
-    if (value) {
-      lines.push(`export ${key}="${value}"`);
-    }
-  }
-
-  return lines.join("\n");
-}
-
-// Always-unset baseline: common Anthropic / Claude Code vars. Covers the case
-// where the previously-active provider has since been deleted from cc-switch,
-// so its keys are no longer in the current provider list.
-const BASELINE_KEYS = [
+// Common Anthropic / Claude Code env keys. Any of these that the selected
+// provider does NOT set are forced to empty in the --settings override, so a
+// previous provider's value baked into ~/.claude/settings.json can't leak
+// through (settings.json env overrides shell env, but --settings overrides
+// settings.json).
+const MANAGED_KEYS = [
   "ANTHROPIC_API_KEY",
   "ANTHROPIC_AUTH_TOKEN",
   "ANTHROPIC_BASE_URL",
@@ -44,16 +24,6 @@ const BASELINE_KEYS = [
   "CLAUDE_CODE_USE_BEDROCK",
   "CLAUDE_CODE_USE_VERTEX",
 ];
-
-// Union of the baseline and every env var key across all providers —
-// the full set ccsl manages and must clear on each switch.
-function collectAllEnvKeys(providers: ClaudeProvider[]): string[] {
-  const keys = new Set<string>(BASELINE_KEYS);
-  for (const p of providers) {
-    for (const key of Object.keys(p.env)) keys.add(key);
-  }
-  return [...keys];
-}
 
 function getModelName(provider: ClaudeProvider): string {
   return (
@@ -68,32 +38,46 @@ function getDisplayName(provider: ClaudeProvider): string {
   return provider.name || "(unnamed)";
 }
 
-// The shell function that makes `ccsl` apply env vars to the CURRENT shell.
-// Without this, a child process can't modify the parent shell's environment.
-function shellInit(): string {
-  return `ccsl() {
-  local _out
-  _out="$(command ccsl --eval "$@")" || return
-  eval "$_out"
-}`;
+// Build the env block passed to `claude --settings`. Starts from the union of
+// all managed keys + this provider's keys, forces unset (empty) ones the
+// provider doesn't define, then applies the provider's actual values.
+function buildSettingsEnv(provider: ClaudeProvider, allKeys: string[]): Record<string, string> {
+  const env: Record<string, string> = {};
+  for (const key of allKeys) env[key] = "";
+  for (const [key, value] of Object.entries(provider.env)) {
+    if (value) env[key] = value;
+  }
+  return env;
+}
+
+function collectAllKeys(providers: ClaudeProvider[]): string[] {
+  const keys = new Set<string>(MANAGED_KEYS);
+  for (const p of providers) {
+    for (const key of Object.keys(p.env)) keys.add(key);
+  }
+  return [...keys];
 }
 
 function showHelp() {
   console.error(`
 ccsl - Per-terminal Claude provider switcher for cc-switch
 
-Setup (one-time, add to ~/.zshrc or ~/.bashrc):
-  eval "$(ccsl init)"
-
-Usage (after setup):
-  ccsl                   Select a provider — applies to current terminal instantly
-  ccsl -s, --start       Select a provider, apply, then launch Claude
-  ccsl -q, --quiet       Use current provider without interactive selection
+Usage:
+  ccsl [claude args...]    Pick a provider, then launch Claude with it
+  ccsl -q, --quiet         Use the current provider without prompting
+  ccsl -p, --print         Print the --settings JSON instead of launching
 
 Other:
-  ccsl init              Print the shell function for setup
-  ccsl -h, --help        Show this help
-  ccsl -v, --version     Show version
+  ccsl -h, --help          Show this help
+  ccsl -v, --version       Show version
+
+Examples:
+  ccsl                     Pick a provider and start Claude
+  ccsl -q                  Start Claude with the current provider
+  ccsl --resume            Pick a provider, then 'claude --resume'
+
+Each terminal stays on whatever provider you launched it with — independent of
+cc-switch's global setting and of other terminals.
 
 GitHub: https://github.com/Mtianwai/ccsl
 `);
@@ -101,12 +85,6 @@ GitHub: https://github.com/Mtianwai/ccsl
 
 async function main() {
   const args = process.argv.slice(2);
-
-  // `ccsl init` — print the shell function for the user's rc file.
-  if (args[0] === "init") {
-    console.log(shellInit());
-    process.exit(0);
-  }
 
   if (args.includes("--help") || args.includes("-h")) {
     showHelp();
@@ -118,22 +96,13 @@ async function main() {
     process.exit(0);
   }
 
-  const startClaude = args.includes("--start") || args.includes("-s");
   const quiet = args.includes("--quiet") || args.includes("-q");
-  // --eval is passed by the shell function; means stdout is captured for eval.
-  const evalMode = args.includes("--eval");
+  const printOnly = args.includes("--print") || args.includes("-p");
+  // Remaining args (minus ccsl's own flags) are forwarded to `claude`.
+  const claudeArgs = args.filter(
+    (a) => !["--quiet", "-q", "--print", "-p"].includes(a)
+  );
 
-  // If not run through the shell function (stdout is a TTY, not captured),
-  // the export commands would just be printed uselessly. Guide the user.
-  if (!evalMode && !quiet && process.stdout.isTTY) {
-    console.error("⚠️  ccsl needs shell integration to apply changes to your terminal.\n");
-    console.error("Add this line to your ~/.zshrc or ~/.bashrc:\n");
-    console.error('  eval "$(ccsl init)"\n');
-    console.error("Then restart your terminal. (Run 'ccsl --help' for more.)");
-    process.exit(1);
-  }
-
-  // Check if db exists
   if (!isDbExists()) {
     console.error("❌ cc-switch database not found. Please make sure cc-switch is installed.");
     process.exit(1);
@@ -183,19 +152,26 @@ async function main() {
     process.exit(1);
   }
 
-  // Export commands go to stdout (captured by `eval`); status goes to stderr.
-  // Pass all keys so the previous provider's vars are unset before applying.
-  console.log(formatEnvExport(provider, collectAllEnvKeys(providers)));
+  const env = buildSettingsEnv(provider, collectAllKeys(providers));
+  const settingsJson = JSON.stringify({ env });
+
+  if (printOnly) {
+    console.log(settingsJson);
+    process.exit(0);
+  }
 
   if (!quiet) {
     outro(`✅ Using ${getDisplayName(provider)} (${getModelName(provider)})`, { output: ui });
   }
 
-  // For --start, append `claude` so the shell function launches it after eval,
-  // inheriting the freshly-applied env vars.
-  if (startClaude) {
-    console.log("claude");
-  }
+  // Launch Claude with this provider's settings. --settings overrides the
+  // global ~/.claude/settings.json env block, so the choice actually sticks
+  // for THIS terminal only — without touching the global config.
+  const proc = Bun.spawn(["claude", "--settings", settingsJson, ...claudeArgs], {
+    stdio: ["inherit", "inherit", "inherit"],
+  });
+  await proc.exited;
+  process.exit(proc.exitCode ?? 0);
 }
 
 main().catch((err) => {
