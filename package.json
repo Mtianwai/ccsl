@@ -1,12 +1,18 @@
 {
   "name": "ccsl",
   "version": "1.0.0",
-  "description": "Terminal-level model switcher for cc-switch - use different Claude models in different terminals",
+  "description": "Per-terminal Claude provider switcher for cc-switch",
   "module": "src/index.ts",
   "type": "module",
   "bin": {
     "ccsl": "src/index.ts"
   },
+  "files": [
+    "src/",
+    "README.md",
+    "README.zh-CN.md",
+    "LICENSE"
+  ],
   "scripts": {
     "start": "bun run src/index.ts",
     "dev": "bun --watch src/index.ts"
