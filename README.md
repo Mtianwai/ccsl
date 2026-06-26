@@ -24,7 +24,7 @@ ccsl fixes this — each terminal picks its own provider, independently.
 
 ```bash
 # Install
-bun add -g ccsl
+bun add -g @mtianwai/ccsl
 
 # Use (interactive selection)
 eval $(ccsl)
@@ -43,21 +43,21 @@ ccsl -s
 <td>
 
 ```bash
-npm install -g ccsl
+npm install -g @mtianwai/ccsl
 ```
 
 </td>
 <td>
 
 ```bash
-bun add -g ccsl
+bun add -g @mtianwai/ccsl
 ```
 
 </td>
 <td>
 
 ```bash
-pnpm add -g ccsl
+pnpm add -g @mtianwai/ccsl
 ```
 
 </td>
@@ -80,10 +80,10 @@ pnpm add -g ccsl
 Add to `.zshrc` / `.bashrc`:
 
 ```bash
-alias ccsl='eval $(bun run /path/to/ccsl/src/index.ts --quiet)'
+alias cs='eval $(ccsl --quiet)'
 ```
 
-Then just type `ccsl` to switch — one word, done.
+Then just type `cs` to switch — two letters, done.
 
 ## 🔧 How It Works
 

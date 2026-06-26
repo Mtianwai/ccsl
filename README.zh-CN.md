@@ -24,7 +24,7 @@ ccsl 解决了这个问题——每个终端独立选择自己的 provider，互
 
 ```bash
 # 安装
-bun add -g ccsl
+bun add -g @mtianwai/ccsl
 
 # 使用（交互式选择）
 eval $(ccsl)
@@ -43,21 +43,21 @@ ccsl -s
 <td>
 
 ```bash
-npm install -g ccsl
+npm install -g @mtianwai/ccsl
 ```
 
 </td>
 <td>
 
 ```bash
-bun add -g ccsl
+bun add -g @mtianwai/ccsl
 ```
 
 </td>
 <td>
 
 ```bash
-pnpm add -g ccsl
+pnpm add -g @mtianwai/ccsl
 ```
 
 </td>
@@ -80,10 +80,10 @@ pnpm add -g ccsl
 添加到 `.zshrc` / `.bashrc`：
 
 ```bash
-alias ccsl='eval $(bun run /path/to/ccsl/src/index.ts --quiet)'
+alias cs='eval $(ccsl --quiet)'
 ```
 
-然后输入 `ccsl` 即可切换——一个词搞定。
+然后输入 `cs` 即可切换——两个字母搞定。
 
 ## 🔧 工作原理
 
