@@ -65,6 +65,8 @@ ccsl - Per-terminal Claude provider switcher for cc-switch
 Usage:
   ccsl [claude args...]    Pick a provider, then launch Claude with it
   ccsl -q, --quiet         Use the current provider without prompting
+  ccsl -c, --continue      Continue the current session (skip prompt)
+  ccsl -n, --new           Start a new session (skip prompt)
   ccsl -p, --print         Print the --settings JSON instead of launching
 
 Other:
@@ -72,8 +74,10 @@ Other:
   ccsl -v, --version       Show version
 
 Examples:
-  ccsl                     Pick a provider and start Claude
-  ccsl -q                  Start Claude with the current provider
+  ccsl                     Pick a provider, then choose new/continue
+  ccsl -q                  Current provider, choose new/continue
+  ccsl -q -c               Current provider, continue session
+  ccsl -q -n               Current provider, new session
   ccsl --resume            Pick a provider, then 'claude --resume'
 
 Each terminal stays on whatever provider you launched it with — independent of
@@ -98,9 +102,11 @@ async function main() {
 
   const quiet = args.includes("--quiet") || args.includes("-q");
   const printOnly = args.includes("--print") || args.includes("-p");
+  const cont = args.includes("--continue") || args.includes("-c");
+  const isNew = args.includes("--new") || args.includes("-n");
   // Remaining args (minus ccsl's own flags) are forwarded to `claude`.
   const claudeArgs = args.filter(
-    (a) => !["--quiet", "-q", "--print", "-p"].includes(a)
+    (a) => !["--quiet", "-q", "--print", "-p", "--continue", "-c", "--new", "-n"].includes(a)
   );
 
   if (!isDbExists()) {
@@ -160,14 +166,36 @@ async function main() {
     process.exit(0);
   }
 
+  // Ask: new session or continue current?
+  let continueSession = cont;
+  if (!quiet && !cont && !isNew) {
+    const mode = await select({
+      message: "Session mode:",
+      options: [
+        { value: "new", label: "New session", hint: "fresh start" },
+        { value: "continue", label: "Continue current", hint: "resume previous conversation" },
+      ],
+      output: ui,
+    });
+    if (isCancel(mode)) {
+      cancel("Operation cancelled.", { output: ui });
+      process.exit(0);
+    }
+    continueSession = mode === "continue";
+  }
+
   if (!quiet) {
-    outro(`✅ Using ${getDisplayName(provider)} (${getModelName(provider)})`, { output: ui });
+    const modeLabel = continueSession ? "continuing session" : "new session";
+    outro(`✅ ${getDisplayName(provider)} (${getModelName(provider)}) — ${modeLabel}`, { output: ui });
   }
 
   // Launch Claude with this provider's settings. --settings overrides the
   // global ~/.claude/settings.json env block, so the choice actually sticks
   // for THIS terminal only — without touching the global config.
-  const proc = Bun.spawn(["claude", "--settings", settingsJson, ...claudeArgs], {
+  const finalArgs = ["--settings", settingsJson, ...claudeArgs];
+  if (continueSession) finalArgs.push("-c");
+
+  const proc = Bun.spawn(["claude", ...finalArgs], {
     stdio: ["inherit", "inherit", "inherit"],
   });
   await proc.exited;
