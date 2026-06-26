@@ -30,7 +30,7 @@ npm install -g @mtianwai/ccsl
 **2. 使用**
 
 ```bash
-ccsl        # 选择 provider → 直接启动 Claude
+ccsl        # 选择 provider → 选新会话/继续 → 启动 Claude
 ccsl -q     # 使用当前 provider，跳过选择
 ```
 
@@ -40,8 +40,12 @@ ccsl -q     # 使用当前 provider，跳过选择
 
 | 命令 | 说明 |
 |------|------|
-| `ccsl [参数...]` | 选择 provider，用它启动 Claude |
+| `ccsl [参数...]` | 选择 provider，选择新会话/继续，启动 Claude |
+| `ccsl -c` | 选择 provider，继续当前会话 |
+| `ccsl -n` | 选择 provider，开启新会话 |
 | `ccsl -q` | 使用 cc-switch 当前 provider，跳过选择 |
+| `ccsl -q -c` | 当前 provider，继续会话 |
+| `ccsl -q -n` | 当前 provider，新会话 |
 | `ccsl -p` | 打印 settings JSON（调试用） |
 | `ccsl -h` | 查看帮助 |
 | `ccsl -v` | 查看版本 |
@@ -50,7 +54,7 @@ ccsl -q     # 使用当前 provider，跳过选择
 
 ```bash
 ccsl --resume          # 选择 provider，然后 claude --resume
-ccsl -q -c 2000        # 当前 provider，限制 token
+ccsl -q -c 2000        # 当前 provider，继续会话，限制 token
 ccsl --model opus      # 选择 provider，覆盖模型
 ```
 

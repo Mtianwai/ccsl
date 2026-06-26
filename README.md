@@ -30,7 +30,7 @@ npm install -g @mtianwai/ccsl
 **2. Use**
 
 ```bash
-ccsl        # pick a provider → launches Claude with it
+ccsl        # pick a provider → choose new/continue → launches Claude
 ccsl -q     # use current provider, no prompt
 ```
 
@@ -40,8 +40,12 @@ ccsl -q     # use current provider, no prompt
 
 | Command | Description |
 |---------|-------------|
-| `ccsl [args...]` | Pick a provider, launch Claude with it |
+| `ccsl [args...]` | Pick a provider, choose new/continue, launch Claude |
+| `ccsl -c` | Pick a provider, continue current session |
+| `ccsl -n` | Pick a provider, start a new session |
 | `ccsl -q` | Use current cc-switch provider, no prompt |
+| `ccsl -q -c` | Current provider, continue session |
+| `ccsl -q -n` | Current provider, new session |
 | `ccsl -p` | Print the settings JSON (debug) |
 | `ccsl -h` | Show help |
 | `ccsl -v` | Show version |
@@ -50,7 +54,7 @@ Extra arguments are passed to `claude`:
 
 ```bash
 ccsl --resume          # pick a provider, then claude --resume
-ccsl -q -c 2000        # current provider, with token limit
+ccsl -q -c 2000        # current provider, continue, with token limit
 ccsl --model opus      # pick a provider, override model
 ```
 
