@@ -1,0 +1,30 @@
+{
+  "name": "ccs",
+  "version": "1.0.0",
+  "description": "Terminal-level model switcher for cc-switch - use different Claude models in different terminals",
+  "module": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "ccs": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.6.0"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "cc-switch",
+    "model-switch",
+    "terminal"
+  ],
+  "license": "MIT"
+}
