@@ -1,201 +1,140 @@
-# CC-Switch Local (ccsl)
+<div align="center">
 
-[English](#english) | [中文](#中文)
+# 🔄 ccsl
+
+**Per-terminal Claude model switcher for cc-switch**
+
+[![npm version](https://img.shields.io/npm/v/ccsl?style=flat-square&color=blue)](https://www.npmjs.com/package/ccsl)
+[![license](https://img.shields.io/npm/l/ccsl?style=flat-square&color=green)](./LICENSE)
+[![bun](https://img.shields.io/badge/bun-compatible-yellow?style=flat-square)](https://bun.sh)
+
+[English](#quick-start) | [中文](./README.zh-CN.md)
+
+</div>
 
 ---
 
-## English
+## 🤔 Why?
 
-Per-terminal Claude model switcher for [cc-switch](https://github.com/farion1231/cc-switch) — use different Claude models in different terminals simultaneously.
+cc-switch switches Claude models **globally**. Want Opus in one terminal and Sonnet in another? **Can't do it.**
 
-### The Problem
+ccsl fixes this — each terminal picks its own model, independently.
 
-cc-switch switches Claude models **globally**. You can't use Opus in one terminal and Sonnet in another at the same time.
-
-### The Solution
-
-ccsl lets each terminal **independently** select its Claude model by exporting environment variables, overriding the global cc-switch setting per shell session.
-
-### Installation
+## ⚡ Quick Start
 
 ```bash
-# npm
-npm install -g ccsl
-
-# bun
+# Install
 bun add -g ccsl
 
-# pnpm
+# Use (interactive selection)
+eval $(ccsl)
+
+# Or select and launch Claude directly
+ccsl -s
+```
+
+<table>
+<tr>
+<th>npm</th>
+<th>bun</th>
+<th>pnpm</th>
+</tr>
+<tr>
+<td>
+
+```bash
+npm install -g ccsl
+```
+
+</td>
+<td>
+
+```bash
+bun add -g ccsl
+```
+
+</td>
+<td>
+
+```bash
 pnpm add -g ccsl
 ```
 
-### Usage
+</td>
+</tr>
+</table>
 
-```bash
-# Interactive selection — outputs export commands
-ccsl
+## 🎯 Usage
 
-# Apply to current shell
-eval $(ccsl)
+| Command | Description |
+|---------|-------------|
+| `ccsl` | Interactive selection, outputs `export` commands |
+| `eval $(ccsl)` | Apply selected model to current shell |
+| `ccsl -s` / `ccsl --start` | Select and launch Claude directly |
+| `ccsl -q` / `ccsl --quiet` | Use current provider (no interaction, for aliases) |
+| `ccsl -h` / `ccsl --help` | Show help |
+| `ccsl -v` / `ccsl --version` | Show version |
 
-# Select and launch Claude directly
-ccsl --start
-# or
-ccsl -s
+### 💡 Pro Tip: Shell Alias
 
-# Use current provider without interactive selection (for aliases)
-ccsl --quiet
-
-# Show help
-ccsl --help
-```
-
-### Shell Alias (recommended)
-
-Add to `.zshrc` or `.bashrc`:
+Add to `.zshrc` / `.bashrc`:
 
 ```bash
 alias ccsl='eval $(bun run /path/to/ccsl/src/index.ts --quiet)'
 ```
 
-Then just type `ccsl` to switch models for the current terminal.
+Then just type `ccsl` to switch — one word, done.
 
-### How It Works
+## 🔧 How It Works
 
-1. Reads provider configs from cc-switch's SQLite database (`~/.cc-switch/cc-switch.db`)
-2. Presents an interactive selection menu
-3. Outputs `export` commands for the selected provider's env vars
-4. Your shell applies these variables, overriding the global cc-switch settings
+```
+┌─────────────────────┐
+│  cc-switch database  │  ~/.cc-switch/cc-switch.db
+└──────────┬──────────┘
+           │ read providers
+           ▼
+┌─────────────────────┐
+│   ccsl interactive   │  pick a model
+└──────────┬──────────┘
+           │ export ENV vars
+           ▼
+┌─────────────────────┐
+│    current shell     │  ANTHROPIC_API_KEY, ANTHROPIC_MODEL, ...
+└─────────────────────┘
+```
 
-### Environment Variables
+## 📦 Environment Variables
 
-- `ANTHROPIC_API_KEY`
-- `ANTHROPIC_AUTH_TOKEN`
-- `ANTHROPIC_BASE_URL`
-- `ANTHROPIC_MODEL`
-- `ANTHROPIC_DEFAULT_HAIKU_MODEL`
-- `ANTHROPIC_DEFAULT_SONNET_MODEL`
-- `ANTHROPIC_DEFAULT_OPUS_MODEL`
+| Variable | Purpose |
+|----------|---------|
+| `ANTHROPIC_API_KEY` | API key |
+| `ANTHROPIC_AUTH_TOKEN` | Auth token |
+| `ANTHROPIC_BASE_URL` | API base URL |
+| `ANTHROPIC_MODEL` | Primary model |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | Sonnet fallback |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | Haiku fallback |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | Opus fallback |
 
-### Example
+## 🌰 Example
 
 ```bash
-# Terminal 1 — Use Opus for complex tasks
-$ ccsl --start
-# Select: Claude Official
+# Terminal 1 — complex tasks, need Opus
+$ ccsl -s
+# → Select: Claude Official
 
-# Terminal 2 — Use cheaper model for simple tasks
-$ ccsl --start
-# Select: DeepSeek
+# Terminal 2 — quick questions, use cheaper model
+$ ccsl -s
+# → Select: DeepSeek
 
-# Terminal 3 — Use whatever cc-switch has globally
+# Terminal 3 — just use whatever cc-switch has globally
 $ claude
 ```
 
-### Requirements
+## 📋 Requirements
 
 - [cc-switch](https://github.com/farion1231/cc-switch) installed and configured
 - [Bun](https://bun.sh) runtime
 
-### License
-
-MIT
-
----
-
-## 中文
-
-终端级 Claude 模型切换器，配合 [cc-switch](https://github.com/farion1231/cc-switch) 使用——让不同终端同时使用不同的 Claude 模型。
-
-### 解决什么问题
-
-cc-switch 切换模型是**全局生效**的，没法在一个终端用 Opus、另一个终端用 Sonnet。
-
-### 怎么解决
-
-ccsl 通过在当前 shell 中导出环境变量，让每个终端**独立选择**自己的 Claude 模型，互不干扰。
-
-### 安装
-
-```bash
-# npm
-npm install -g ccsl
-
-# bun
-bun add -g ccsl
-
-# pnpm
-pnpm add -g ccsl
-```
-
-### 使用
-
-```bash
-# 交互式选择，输出 export 命令
-ccsl
-
-# 应用到当前 shell
-eval $(ccsl)
-
-# 选择后直接启动 Claude
-ccsl --start
-# 或
-ccsl -s
-
-# 静默模式，直接使用当前 provider（适合写 alias）
-ccsl --quiet
-
-# 查看帮助
-ccsl --help
-```
-
-### Shell Alias（推荐）
-
-添加到 `.zshrc` 或 `.bashrc`：
-
-```bash
-alias ccsl='eval $(bun run /path/to/ccsl/src/index.ts --quiet)'
-```
-
-之后输入 `ccsl` 即可切换当前终端的模型。
-
-### 工作原理
-
-1. 从 cc-switch 的 SQLite 数据库（`~/.cc-switch/cc-switch.db`）读取 provider 配置
-2. 弹出交互式选择菜单
-3. 输出选中 provider 的 `export` 命令
-4. Shell 应用这些环境变量，覆盖全局 cc-switch 设置
-
-### 环境变量
-
-- `ANTHROPIC_API_KEY`
-- `ANTHROPIC_AUTH_TOKEN`
-- `ANTHROPIC_BASE_URL`
-- `ANTHROPIC_MODEL`
-- `ANTHROPIC_DEFAULT_HAIKU_MODEL`
-- `ANTHROPIC_DEFAULT_SONNET_MODEL`
-- `ANTHROPIC_DEFAULT_OPUS_MODEL`
-
-### 示例
-
-```bash
-# 终端 1 — 用 Opus 做复杂任务
-$ ccsl --start
-# 选择：Claude Official
-
-# 终端 2 — 用便宜模型做简单任务
-$ ccsl --start
-# 选择：DeepSeek
-
-# 终端 3 — 用 cc-switch 全局配置
-$ claude
-```
-
-### 依赖
-
-- 已安装并配置 [cc-switch](https://github.com/farion1231/cc-switch)
-- [Bun](https://bun.sh) 运行时
-
-### 许可证
+## 📄 License
 
 MIT
