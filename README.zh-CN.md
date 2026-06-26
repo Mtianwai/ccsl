@@ -2,13 +2,13 @@
 
 # 🔄 ccsl
 
-**终端级 Claude 模型切换器，配合 cc-switch 使用**
+**终端级 Claude provider 切换器，配合 cc-switch 使用**
 
-[![npm version](https://img.shields.io/npm/v/ccsl?style=flat-square&color=blue)](https://www.npmjs.com/package/ccsl)
-[![license](https://img.shields.io/npm/l/ccsl?style=flat-square&color=green)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/@mtianwai/ccsl?style=flat-square&color=blue)](https://www.npmjs.com/package/@mtianwai/ccsl)
+[![license](https://img.shields.io/npm/l/@mtianwai/ccsl?style=flat-square&color=green)](./LICENSE)
 [![bun](https://img.shields.io/badge/bun-compatible-yellow?style=flat-square)](https://bun.sh)
 
-[English](./README.md) | [中文](#快速开始)
+[English](./README.md) | [中文](#-解决什么问题)
 
 </div>
 
@@ -22,16 +22,7 @@ ccsl 解决了这个问题——每个终端独立选择自己的 provider，互
 
 ## ⚡ 快速开始
 
-```bash
-# 安装
-bun add -g @mtianwai/ccsl
-
-# 使用（交互式选择）
-eval $(ccsl)
-
-# 或者选择后直接启动 Claude
-ccsl -s
-```
+**1. 安装**
 
 <table>
 <tr>
@@ -64,26 +55,35 @@ pnpm add -g @mtianwai/ccsl
 </tr>
 </table>
 
-## 🎯 用法
+**2. 配置 shell 集成**（一次性）——把这行加到 `~/.zshrc` 或 `~/.bashrc`：
+
+```bash
+eval "$(ccsl init)"
+```
+
+然后重启终端。**搞定。**
+
+**3. 使用**
+
+```bash
+ccsl        # 选择 provider → 立即应用到当前终端
+ccsl -s     # 选择 → 应用 → 启动 Claude
+```
+
+> [!NOTE]
+> 为什么需要 `eval "$(ccsl init)"` 这一行？因为程序自己无法修改父 shell 的环境变量，
+> 必须由 shell 来执行。这和 `zoxide`、`starship`、`fnm`、`direnv` 是同样的模式。
+
+## 🎯 命令
 
 | 命令 | 说明 |
 |------|------|
-| `ccsl` | 交互式选择，输出 `export` 命令 |
-| `eval $(ccsl)` | 将选中的模型应用到当前 shell |
-| `ccsl -s` / `ccsl --start` | 选择后直接启动 Claude |
-| `ccsl -q` / `ccsl --quiet` | 静默模式，使用当前 provider（适合写 alias） |
+| `ccsl` | 选择 provider，立即应用到当前终端 |
+| `ccsl -s` / `ccsl --start` | 选择 → 应用 → 启动 Claude |
+| `ccsl -q` / `ccsl --quiet` | 静默模式，使用当前 provider 不交互 |
+| `ccsl init` | 输出 shell 函数（用于配置） |
 | `ccsl -h` / `ccsl --help` | 查看帮助 |
 | `ccsl -v` / `ccsl --version` | 查看版本 |
-
-### 💡 推荐：Shell Alias
-
-添加到 `.zshrc` / `.bashrc`：
-
-```bash
-alias cs='eval $(ccsl --quiet)'
-```
-
-然后输入 `cs` 即可切换——两个字母搞定。
 
 ## 🔧 工作原理
 
@@ -94,12 +94,12 @@ alias cs='eval $(ccsl --quiet)'
            │ 读取 provider 配置
            ▼
 ┌─────────────────────┐
-│   ccsl 交互式选择    │  选一个模型
+│   ccsl 交互式选择    │  选一个 provider
 └──────────┬──────────┘
-           │ 输出 export 环境变量
+           │ shell 函数 eval 这些 export 命令
            ▼
 ┌─────────────────────┐
-│    当前 shell        │  ANTHROPIC_API_KEY, ANTHROPIC_MODEL, ...
+│    当前 shell        │  ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, ...
 └─────────────────────┘
 ```
 

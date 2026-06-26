@@ -3,7 +3,10 @@
 import { select, isCancel, cancel, intro, outro } from "@clack/prompts";
 import { getClaudeProviders, getProviderById, getCurrentProviderId, isDbExists, ClaudeProvider } from "./db";
 
-const VERSION = "1.0.0";
+const VERSION = "1.1.0";
+
+// All interactive UI goes to stderr so stdout stays clean for `eval $(ccsl)`.
+const ui = process.stderr;
 
 function formatEnvExport(provider: ClaudeProvider): string {
   const lines: string[] = [];
@@ -28,30 +31,45 @@ function getDisplayName(provider: ClaudeProvider): string {
   return provider.name || "(unnamed)";
 }
 
+// The shell function that makes `ccsl` apply env vars to the CURRENT shell.
+// Without this, a child process can't modify the parent shell's environment.
+function shellInit(): string {
+  return `ccsl() {
+  local _out
+  _out="$(command ccsl --eval "$@")" || return
+  eval "$_out"
+}`;
+}
+
 function showHelp() {
-  console.log(`
-ccsl - Terminal-level model switcher for cc-switch
+  console.error(`
+ccsl - Per-terminal Claude provider switcher for cc-switch
 
-Usage:
-  ccsl                   Interactive provider selection (outputs export commands)
-  ccsl --start, -s       Select provider and launch Claude directly
-  ccsl --quiet, -q       Use current provider without interactive selection
-  ccsl --help, -h        Show this help message
-  ccsl --version, -v     Show version
+Setup (one-time, add to ~/.zshrc or ~/.bashrc):
+  eval "$(ccsl init)"
 
-Examples:
-  eval $(ccsl)           Apply selected provider to current shell
-  ccsl -s                Select and start Claude
-  ccsl -q                Export current provider's env vars (for aliases)
+Usage (after setup):
+  ccsl                   Select a provider — applies to current terminal instantly
+  ccsl -s, --start       Select a provider, apply, then launch Claude
+  ccsl -q, --quiet       Use current provider without interactive selection
 
-GitHub: https://github.com/nicobailon/cc-switch
+Other:
+  ccsl init              Print the shell function for setup
+  ccsl -h, --help        Show this help
+  ccsl -v, --version     Show version
+
+GitHub: https://github.com/Mtianwai/ccsl
 `);
 }
 
 async function main() {
   const args = process.argv.slice(2);
-  const startClaude = args.includes("--start") || args.includes("-s");
-  const quiet = args.includes("--quiet") || args.includes("-q");
+
+  // `ccsl init` — print the shell function for the user's rc file.
+  if (args[0] === "init") {
+    console.log(shellInit());
+    process.exit(0);
+  }
 
   if (args.includes("--help") || args.includes("-h")) {
     showHelp();
@@ -63,35 +81,43 @@ async function main() {
     process.exit(0);
   }
 
+  const startClaude = args.includes("--start") || args.includes("-s");
+  const quiet = args.includes("--quiet") || args.includes("-q");
+  // --eval is passed by the shell function; means stdout is captured for eval.
+  const evalMode = args.includes("--eval");
+
+  // If not run through the shell function (stdout is a TTY, not captured),
+  // the export commands would just be printed uselessly. Guide the user.
+  if (!evalMode && !quiet && process.stdout.isTTY) {
+    console.error("⚠️  ccsl needs shell integration to apply changes to your terminal.\n");
+    console.error("Add this line to your ~/.zshrc or ~/.bashrc:\n");
+    console.error('  eval "$(ccsl init)"\n');
+    console.error("Then restart your terminal. (Run 'ccsl --help' for more.)");
+    process.exit(1);
+  }
+
   // Check if db exists
   if (!isDbExists()) {
-    if (!quiet) console.error("❌ cc-switch database not found.");
-    if (!quiet) console.error("   Please make sure cc-switch is installed.");
+    console.error("❌ cc-switch database not found. Please make sure cc-switch is installed.");
     process.exit(1);
   }
 
-  // Get all Claude providers
   const providers = getClaudeProviders();
-
   if (providers.length === 0) {
-    if (!quiet) console.error("❌ No Claude providers found in cc-switch database.");
+    console.error("❌ No Claude providers found in cc-switch database.");
     process.exit(1);
   }
 
-  // Get current provider for highlighting
   const currentId = getCurrentProviderId();
 
   let selectedId: string;
 
   if (quiet) {
-    // In quiet mode, use current provider directly
-    selectedId = currentId || providers[0]?.id;
-    if (!selectedId) {
-      process.exit(1);
-    }
+    const id = currentId || providers[0]?.id;
+    if (!id) process.exit(1);
+    selectedId = id;
   } else {
-    // Interactive mode
-    intro("🎨 CC-Switch Local");
+    intro("🎨 CC-Switch Local", { output: ui });
 
     const options = providers.map((p) => ({
       value: p.id,
@@ -103,50 +129,34 @@ async function main() {
       message: "Select a Claude provider for this terminal:",
       options,
       initialValue: currentId || options[0]?.value,
+      output: ui,
     });
 
     if (isCancel(selected)) {
-      cancel("Operation cancelled.");
+      cancel("Operation cancelled.", { output: ui });
       process.exit(0);
     }
 
     selectedId = selected as string;
   }
 
-  // Get the selected provider
   const provider = getProviderById(selectedId);
   if (!provider) {
     console.error("❌ Provider not found.");
     process.exit(1);
   }
 
-  // Output environment variables
-  const envExport = formatEnvExport(provider);
+  // Export commands go to stdout (captured by `eval`); status goes to stderr.
+  console.log(formatEnvExport(provider));
 
+  if (!quiet) {
+    outro(`✅ Using ${getDisplayName(provider)} (${getModelName(provider)})`, { output: ui });
+  }
+
+  // For --start, append `claude` so the shell function launches it after eval,
+  // inheriting the freshly-applied env vars.
   if (startClaude) {
-    // Set env vars and start claude
-    for (const [key, value] of Object.entries(provider.env)) {
-      if (value) {
-        process.env[key] = value;
-      }
-    }
-
-    if (!quiet) {
-      outro(`✅ Using ${getDisplayName(provider)} (${getModelName(provider)})`);
-    }
-
-    // Start claude
-    const proc = Bun.spawn(["claude"], {
-      stdio: ["inherit", "inherit", "inherit"],
-    });
-    await proc.exited;
-  } else {
-    // Just output the export commands
-    console.log(envExport);
-
-    if (!quiet) {
-      outro(`✅ Run 'eval \$(ccsl)' to apply, or 'ccsl --start' to launch Claude directly`);
-    }
+    console.log("claude");
   }
 }
 

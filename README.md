@@ -2,13 +2,13 @@
 
 # 🔄 ccsl
 
-**Per-terminal Claude model switcher for cc-switch**
+**Per-terminal Claude provider switcher for cc-switch**
 
-[![npm version](https://img.shields.io/npm/v/ccsl?style=flat-square&color=blue)](https://www.npmjs.com/package/ccsl)
-[![license](https://img.shields.io/npm/l/ccsl?style=flat-square&color=green)](./LICENSE)
+[![npm version](https://img.shields.io/npm/v/@mtianwai/ccsl?style=flat-square&color=blue)](https://www.npmjs.com/package/@mtianwai/ccsl)
+[![license](https://img.shields.io/npm/l/@mtianwai/ccsl?style=flat-square&color=green)](./LICENSE)
 [![bun](https://img.shields.io/badge/bun-compatible-yellow?style=flat-square)](https://bun.sh)
 
-[English](#quick-start) | [中文](./README.zh-CN.md)
+[English](#-why) | [中文](./README.zh-CN.md)
 
 </div>
 
@@ -22,16 +22,7 @@ ccsl fixes this — each terminal picks its own provider, independently.
 
 ## ⚡ Quick Start
 
-```bash
-# Install
-bun add -g @mtianwai/ccsl
-
-# Use (interactive selection)
-eval $(ccsl)
-
-# Or select and launch Claude directly
-ccsl -s
-```
+**1. Install**
 
 <table>
 <tr>
@@ -64,26 +55,36 @@ pnpm add -g @mtianwai/ccsl
 </tr>
 </table>
 
-## 🎯 Usage
+**2. Add shell integration** (one-time) — append to `~/.zshrc` or `~/.bashrc`:
+
+```bash
+eval "$(ccsl init)"
+```
+
+Then restart your terminal. **That's it.**
+
+**3. Use it**
+
+```bash
+ccsl        # select a provider → applies to this terminal instantly
+ccsl -s     # select → apply → launch Claude
+```
+
+> [!NOTE]
+> The `eval "$(ccsl init)"` line is required because a program can't change its
+> parent shell's environment by itself — the shell has to do it. This is the same
+> pattern used by `zoxide`, `starship`, `fnm`, and `direnv`.
+
+## 🎯 Commands
 
 | Command | Description |
 |---------|-------------|
-| `ccsl` | Interactive selection, outputs `export` commands |
-| `eval $(ccsl)` | Apply selected model to current shell |
-| `ccsl -s` / `ccsl --start` | Select and launch Claude directly |
-| `ccsl -q` / `ccsl --quiet` | Use current provider (no interaction, for aliases) |
+| `ccsl` | Select a provider, applies to current terminal instantly |
+| `ccsl -s` / `ccsl --start` | Select, apply, then launch Claude |
+| `ccsl -q` / `ccsl --quiet` | Use current provider without interactive selection |
+| `ccsl init` | Print the shell function (for setup) |
 | `ccsl -h` / `ccsl --help` | Show help |
 | `ccsl -v` / `ccsl --version` | Show version |
-
-### 💡 Pro Tip: Shell Alias
-
-Add to `.zshrc` / `.bashrc`:
-
-```bash
-alias cs='eval $(ccsl --quiet)'
-```
-
-Then just type `cs` to switch — two letters, done.
 
 ## 🔧 How It Works
 
@@ -94,12 +95,12 @@ Then just type `cs` to switch — two letters, done.
            │ read providers
            ▼
 ┌─────────────────────┐
-│   ccsl interactive   │  pick a model
+│   ccsl (interactive) │  pick a provider
 └──────────┬──────────┘
-           │ export ENV vars
+           │ shell function evals the export commands
            ▼
 ┌─────────────────────┐
-│    current shell     │  ANTHROPIC_API_KEY, ANTHROPIC_MODEL, ...
+│    current shell     │  ANTHROPIC_API_KEY, ANTHROPIC_BASE_URL, ...
 └─────────────────────┘
 ```
 
