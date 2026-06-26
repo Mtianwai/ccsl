@@ -8,14 +8,51 @@ const VERSION = "1.1.0";
 // All interactive UI goes to stderr so stdout stays clean for `eval $(ccsl)`.
 const ui = process.stderr;
 
-function formatEnvExport(provider: ClaudeProvider): string {
+// Build the shell script that switches to `provider`. Crucially, it first
+// `unset`s every env var any provider could set (`allKeys`), so switching from
+// a provider that uses ANTHROPIC_AUTH_TOKEN to one that uses AWS_REGION (or to
+// "Claude Official" which sets nothing) doesn't leave stale credentials behind.
+function formatEnvExport(provider: ClaudeProvider, allKeys: string[]): string {
   const lines: string[] = [];
+
+  // Clean slate: drop every var ccsl might have set previously.
+  for (const key of allKeys) {
+    lines.push(`unset ${key}`);
+  }
+
+  // Apply the selected provider's vars.
   for (const [key, value] of Object.entries(provider.env)) {
     if (value) {
       lines.push(`export ${key}="${value}"`);
     }
   }
+
   return lines.join("\n");
+}
+
+// Always-unset baseline: common Anthropic / Claude Code vars. Covers the case
+// where the previously-active provider has since been deleted from cc-switch,
+// so its keys are no longer in the current provider list.
+const BASELINE_KEYS = [
+  "ANTHROPIC_API_KEY",
+  "ANTHROPIC_AUTH_TOKEN",
+  "ANTHROPIC_BASE_URL",
+  "ANTHROPIC_MODEL",
+  "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+  "ANTHROPIC_DEFAULT_SONNET_MODEL",
+  "ANTHROPIC_DEFAULT_OPUS_MODEL",
+  "CLAUDE_CODE_USE_BEDROCK",
+  "CLAUDE_CODE_USE_VERTEX",
+];
+
+// Union of the baseline and every env var key across all providers —
+// the full set ccsl manages and must clear on each switch.
+function collectAllEnvKeys(providers: ClaudeProvider[]): string[] {
+  const keys = new Set<string>(BASELINE_KEYS);
+  for (const p of providers) {
+    for (const key of Object.keys(p.env)) keys.add(key);
+  }
+  return [...keys];
 }
 
 function getModelName(provider: ClaudeProvider): string {
@@ -147,7 +184,8 @@ async function main() {
   }
 
   // Export commands go to stdout (captured by `eval`); status goes to stderr.
-  console.log(formatEnvExport(provider));
+  // Pass all keys so the previous provider's vars are unset before applying.
+  console.log(formatEnvExport(provider, collectAllEnvKeys(providers)));
 
   if (!quiet) {
     outro(`✅ Using ${getDisplayName(provider)} (${getModelName(provider)})`, { output: ui });
