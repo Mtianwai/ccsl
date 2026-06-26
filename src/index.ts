@@ -3,7 +3,7 @@
 import { select, isCancel, cancel, intro, outro } from "@clack/prompts";
 import { getClaudeProviders, getProviderById, getCurrentProviderId, isDbExists, ClaudeProvider } from "./db";
 
-const VERSION = "1.1.0";
+const VERSION = "1.1.1";
 
 // All interactive UI goes to stderr so stdout stays clean for `eval $(ccsl)`.
 const ui = process.stderr;
