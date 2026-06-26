@@ -1,6 +1,6 @@
 {
   "name": "@mtianwai/ccsl",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Per-terminal Claude provider switcher for cc-switch",
   "module": "src/index.ts",
   "type": "module",
