@@ -1,4 +1,4 @@
-# CC-Switch Terminal (ccs)
+# CC-Switch Local (ccsll)
 
 Terminal-level model switcher for cc-switch - use different Claude models in different terminals simultaneously.
 
@@ -12,20 +12,20 @@ cc-switch allows switching between Claude models globally, but you can't use dif
 
 ```bash
 # Using npm
-npm install -g ccs
+npm install -g ccsl
 
 # Using bun
-bun add -g ccs
+bun add -g ccsl
 
 # Using pnpm
-pnpm add -g ccs
+pnpm add -g ccsl
 ```
 
 ### Local Development
 
 ```bash
 git clone <this-repo>
-cd ccs
+cd ccsl
 bun install
 bun link
 ```
@@ -36,19 +36,19 @@ bun link
 
 ```bash
 # Interactive provider selection (outputs export commands)
-ccs
+ccsl
 
 # Apply to current shell
-eval $(ccs)
+eval $(ccsl)
 ```
 
 ### Quick Start Claude
 
 ```bash
 # Select provider and start Claude immediately
-ccs --start
+ccsl --start
 # or
-ccs -s
+ccsl -s
 ```
 
 ### Add to Shell Config
@@ -56,10 +56,10 @@ ccs -s
 For convenience, add an alias to your `.zshrc` or `.bashrc`:
 
 ```bash
-alias ccs='eval $(bun run /path/to/ccs/src/index.ts --quiet)'
+alias ccsl='eval $(bun run /path/to/ccsl/src/index.ts --quiet)'
 ```
 
-Then just type `ccs` to switch models for the current terminal.
+Then just type `ccsl` to switch models for the current terminal.
 
 ## How It Works
 
@@ -84,12 +84,12 @@ The tool sets these Claude-related environment variables:
 
 ```bash
 # Terminal 1 - Use Claude Opus for complex tasks
-$ ccs --start
+$ ccsl --start
 # Select: Claude Official
 # Claude starts with official API
 
 # Terminal 2 - Use cheaper model for simple tasks
-$ ccs --start
+$ ccsl --start
 # Select: DeepSeek
 # Claude starts with DeepSeek API
 

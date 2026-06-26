@@ -1,11 +1,11 @@
 {
-  "name": "ccs",
+  "name": "ccsl",
   "version": "1.0.0",
   "description": "Terminal-level model switcher for cc-switch - use different Claude models in different terminals",
   "module": "src/index.ts",
   "type": "module",
   "bin": {
-    "ccs": "src/index.ts"
+    "ccsl": "src/index.ts"
   },
   "scripts": {
     "start": "bun run src/index.ts",

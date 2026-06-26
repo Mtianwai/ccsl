@@ -28,7 +28,7 @@ async function main() {
   const quiet = args.includes("--quiet") || args.includes("-q");
 
   if (!quiet) {
-    intro("🎨 CC-Switch Terminal");
+    intro("🎨 CC-Switch Local");
   }
 
   // Check if db exists
